@@ -29,6 +29,7 @@ import requests
 import matplotlib.pyplot as plt
 import time
 
+
 class ChannelAttentionModule(nn.Module):
     def __init__(self, channel, ratio=16):
         super(ChannelAttentionModule, self).__init__()
@@ -165,36 +166,6 @@ class ACFF2(nn.Module):
         out = out_ca + out_sa
 
         return out
-
-
-class CatUP(nn.Module):
-    def __init__(self, channel_L, channel_H):
-        super(CatUP, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels=channel_H,out_channels=channel_L,kernel_size=1, stride=1,padding=0)
-        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-
-        self.Conv = nn.Sequential(
-            nn.Conv2d(channel_L+channel_H,channel_L,kernel_size=3,stride=1,padding=1),
-            nn.BatchNorm2d(channel_L),
-            nn.ReLU(),
-            nn.Conv2d(channel_L, channel_L, kernel_size=3,stride=1,padding=1),
-            nn.BatchNorm2d(channel_L),
-            )
-        self.sigmod = nn.Sigmoid()
-        self.ca = ChannelAttention(in_channels=channel_L,ratio=16)
-
-    def forward(self, f_low,f_high):
-
-        f_high =self.up(f_high)
-
-        f_cat = torch.cat((f_low,f_high),dim=1)
-        out = self.Conv(f_cat)
-
-        att = self.ca(out)
-        output = att*out
-
-        return output
 
 class SupervisedAttentionModule(nn.Module):
     def __init__(self, mid_d):

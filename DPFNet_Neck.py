@@ -46,40 +46,6 @@ class Conv(nn.Module):
     def forward_fuse(self, x):
         return self.act(self.conv(x))
 
-class cross_fuse_3d(nn.Module):   #bias = True   12000次迭代才59    #bias = False   63.76
-    def __init__(self, in_channels):
-        super(cross_fuse_3d, self).__init__()
-        self.conv3d = nn.Sequential(
-            nn.Conv3d(1, 1, kernel_size=[3,3,3], stride=1, padding=1, bias=False),
-        )
-        self.fuse_conv = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, kernel_size=3, stride=1, padding=1, bias=False),
-                         nn.ReLU(),
-                         nn.BatchNorm2d(in_channels),
-        )
-        self.fuse_conv1 = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels, kernel_size=1, stride=1, padding=0, bias=False),
-            nn.ReLU(),
-            nn.BatchNorm2d(in_channels),
-        )
-
-        self.dropout = nn.Dropout2d(0.1)
-    def forward(self, x1, x2):
-        tensor1 = x1
-        tensor2 = x2
-        b,c,h,w = tensor1.shape
-        tensor1 = tensor1.view(b, c, h*w )
-        tensor2 = tensor2.view(b, c, h*w )
-        cross_x = torch.cat((tensor1, tensor2), dim=2)  #直接dim=1不行吗，好离谱呀，可能就是为了cross-stitch
-        cross_x = cross_x.view(b, c*2, h,w)
-        cross_x = cross_x.unsqueeze(1)
-        cross_x = self.conv3d(cross_x)
-        cross_x = cross_x.squeeze(1)
-        cross_x = self.fuse_conv(cross_x)  #3×3卷积
-        cross_x = self.dropout(cross_x)
-        cross_x = self.fuse_conv1(cross_x)  #1×1卷积
-        cross_x = self.dropout(cross_x)
-        return cross_x
-
 
 class quzaosheng(nn.Module):  #去噪声
     def __init__(self, dim, h=128, w=65):
